@@ -1,8 +1,16 @@
+version: 1.0.{build}
+# Build worker image (VM template)
+image: Visual Studio 2022
+# Build configuration
 configuration: Release
-
+# Scripts that run before build
 before_build:
-  - nuget restore
-
-build:
-  verbosity: minimal
-  publish_wap: true
+  - echo "Starting build process..."
+# Build script
+build_script:
+  - echo "Hello World"
+# Scripts that run after build
+after_build:
+  - echo "Build completed!"
+# Disable automatic tests
+test: off
