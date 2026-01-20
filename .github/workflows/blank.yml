@@ -21,6 +21,17 @@ jobs:
       - name: Memory Benchmark
         shell: pwsh
         run: |
-          choco install 7zip -y
-          & "C:\Program Files\7-Zip\7z.exe" b -mmt1  # Single thread
-          & "C:\Program Files\7-Zip\7z.exe" b        # Multi-thread
+          # Download DiskSpd
+          Invoke-WebRequest -Uri "https://github.com/microsoft/diskspd/releases/download/v2.1/DiskSpd.zip" -OutFile "diskspd.zip"
+          Expand-Archive diskspd.zip -DestinationPath diskspd
+          cd diskspd\amd64
+          Write-Host "=== Sequential Read Test ===" -ForegroundColor Cyan
+          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b128K -Sr -w0 testfile.dat
+          Write-Host "`n=== Sequential Write Test ===" -ForegroundColor Cyan
+          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b128K -Sw -w100 testfile.dat
+          Write-Host "`n=== Random Read (4K) Test ===" -ForegroundColor Cyan
+          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b4K -r -w0 testfile.dat
+          Write-Host "`n=== Random Write (4K) Test ===" -ForegroundColor Cyan
+          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b4K -r -w100 testfile.dat
+          Write-Host "`n=== Mixed 70/30 Read/Write ===" -ForegroundColor Cyan
+          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b4K -r -w30 testfile.dat
