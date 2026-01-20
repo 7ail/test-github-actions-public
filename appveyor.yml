@@ -8,7 +8,13 @@ before_build:
   - echo "Starting build process..."
 # Build script
 build_script:
-  - echo "Hello World"
+  - ps: |
+      # Install 7-Zip using Chocolatey
+      choco install 7zip -y
+      # Run 7-Zip Benchmark - Single thread
+      & "C:\Program Files\7-Zip\7z.exe" b -mmt1
+      # Run 7-Zip Benchmark - Multi-thread
+      & "C:\Program Files\7-Zip\7z.exe" b
 # Scripts that run after build
 after_build:
   - echo "Build completed!"
