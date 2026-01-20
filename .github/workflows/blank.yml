@@ -1,4 +1,4 @@
-name: CPU Benchmark - Windows Server 2025
+name: Memory Benchmark - Windows Server 2025
 
 on:
   workflow_dispatch:  # Manual trigger
@@ -10,7 +10,7 @@ on:
       - main
 
 jobs:
-  benchmark-cpu-2025:
+  benchmark-memory-2025:
     runs-on: windows-2025
     timeout-minutes: 30
     
@@ -18,17 +18,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: CPU Benchmark
+      - name: Memory Benchmark
         shell: pwsh
         run: |
           Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host "CPU BENCHMARK - Windows Server 2025" -ForegroundColor Cyan
+          Write-Host "MEMORY BENCHMARK - Windows Server 2025" -ForegroundColor Cyan
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
           
           $results = @()
           $results += "========================================="
-          $results += "CPU BENCHMARK - Windows Server 2025"
+          $results += "MEMORY BENCHMARK - Windows Server 2025"
           $results += "========================================="
           $results += "Benchmark Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')"
           $results += ""
@@ -36,220 +36,292 @@ jobs:
           # System Information
           Write-Host "Gathering system information..." -ForegroundColor Yellow
           $os = Get-CimInstance Win32_OperatingSystem
+          $cs = Get-CimInstance Win32_ComputerSystem
+          
           $results += "--- System Information ---"
           $results += "OS: $($os.Caption)"
           $results += "Version: $($os.Version)"
           $results += "Build: $($os.BuildNumber)"
-          $results += "Architecture: $($os.OSArchitecture)"
           $results += ""
           
-          # CPU Information
-          Write-Host "Gathering CPU information..." -ForegroundColor Yellow
-          $cpu = Get-CimInstance Win32_Processor
-          $results += "--- CPU Information ---"
-          $results += "Name: $($cpu.Name)"
-          $results += "Manufacturer: $($cpu.Manufacturer)"
-          $results += "Cores: $($cpu.NumberOfCores)"
-          $results += "Logical Processors: $($cpu.NumberOfLogicalProcessors)"
-          $results += "Max Clock Speed: $($cpu.MaxClockSpeed) MHz"
-          $results += "Current Clock Speed: $($cpu.CurrentClockSpeed) MHz"
-          $results += "L2 Cache: $($cpu.L2CacheSize) KB"
-          $results += "L3 Cache: $($cpu.L3CacheSize) KB"
+          # Memory Information
+          Write-Host "Gathering memory information..." -ForegroundColor Yellow
+          $totalMemoryGB = [math]::Round($cs.TotalPhysicalMemory / 1GB, 2)
+          $freeMemoryGB = [math]::Round($os.FreePhysicalMemory / 1MB / 1024, 2)
+          $usedMemoryGB = [math]::Round($totalMemoryGB - $freeMemoryGB, 2)
+          $usagePercent = [math]::Round(($usedMemoryGB / $totalMemoryGB) * 100, 2)
+          
+          $results += "--- Memory Configuration ---"
+          $results += "Total Physical Memory: $totalMemoryGB GB"
+          $results += "Free Physical Memory: $freeMemoryGB GB"
+          $results += "Used Physical Memory: $usedMemoryGB GB"
+          $results += "Memory Usage: $usagePercent%"
           $results += ""
           
-          # Test 1: Integer Math (Single Thread)
-          Write-Host "Running Test 1: Integer Math (Single Thread)..." -ForegroundColor Yellow
-          $results += "--- Test 1: Integer Math (Single Thread) ---"
+          # Memory Modules
+          $results += "--- Memory Modules ---"
+          $memModules = Get-CimInstance Win32_PhysicalMemory
+          $moduleCount = 0
+          foreach ($module in $memModules) {
+            $moduleCount++
+            $results += "Module $moduleCount"
+            $results += "  Capacity: $([math]::Round($module.Capacity / 1GB, 2)) GB"
+            $results += "  Speed: $($module.Speed) MHz"
+            $results += "  Type: $($module.MemoryType)"
+            $results += "  Form Factor: $($module.FormFactor)"
+            $results += "  Manufacturer: $($module.Manufacturer)"
+            $results += "  Part Number: $($module.PartNumber)"
+            $results += ""
+          }
+          
+          # Test 1: Small Array Allocation (10MB)
+          Write-Host "Running Test 1: Small Array Allocation (10MB)..." -ForegroundColor Yellow
+          $results += "--- Test 1: Small Array Allocation (10MB) ---"
+          $testSize = 10MB
+          $startTime = Get-Date
+          
+          $array = New-Object byte[] $testSize
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalMilliseconds
+          $results += "Size: $([math]::Round($testSize / 1MB, 2)) MB"
+          $results += "Time: $([math]::Round($duration, 2)) ms"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 2)) ms" -ForegroundColor Green
+          
+          $array = $null
+          [System.GC]::Collect()
+          
+          # Test 2: Medium Array Allocation (100MB)
+          Write-Host "Running Test 2: Medium Array Allocation (100MB)..." -ForegroundColor Yellow
+          $results += "--- Test 2: Medium Array Allocation (100MB) ---"
+          $testSize = 100MB
+          $startTime = Get-Date
+          
+          $array = New-Object byte[] $testSize
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalMilliseconds
+          $results += "Size: $([math]::Round($testSize / 1MB, 2)) MB"
+          $results += "Time: $([math]::Round($duration, 2)) ms"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 2)) ms" -ForegroundColor Green
+          
+          # Test 3: Sequential Write (100MB)
+          Write-Host "Running Test 3: Sequential Write (100MB)..." -ForegroundColor Yellow
+          $results += "--- Test 3: Sequential Write (100MB) ---"
+          $startTime = Get-Date
+          
+          for ($i = 0; $i -lt $array.Length; $i += 4096) {
+            $array[$i] = [byte]($i % 256)
+          }
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalSeconds
+          $throughput = [math]::Round(($testSize / 1MB) / $duration, 2)
+          $results += "Size: $([math]::Round($testSize / 1MB, 2)) MB"
+          $results += "Write pattern: Every 4KB"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Throughput: $throughput MB/s"
+          $results += ""
+          Write-Host "  Throughput: $throughput MB/s" -ForegroundColor Green
+          
+          # Test 4: Sequential Read (100MB)
+          Write-Host "Running Test 4: Sequential Read (100MB)..." -ForegroundColor Yellow
+          $results += "--- Test 4: Sequential Read (100MB) ---"
           $startTime = Get-Date
           
           $sum = 0
-          for ($i = 0; $i -lt 10000000; $i++) {
-            $sum += $i
+          for ($i = 0; $i -lt $array.Length; $i += 4096) {
+            $sum += $array[$i]
           }
           
           $endTime = Get-Date
           $duration = ($endTime - $startTime).TotalSeconds
-          $results += "Iterations: 10,000,000"
+          $throughput = [math]::Round(($testSize / 1MB) / $duration, 2)
+          $results += "Size: $([math]::Round($testSize / 1MB, 2)) MB"
+          $results += "Read pattern: Every 4KB"
           $results += "Time: $([math]::Round($duration, 3)) seconds"
-          $results += "Operations/sec: $([math]::Round(10000000 / $duration, 0))"
+          $results += "Throughput: $throughput MB/s"
+          $results += "Checksum: $sum"
           $results += ""
-          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          Write-Host "  Throughput: $throughput MB/s" -ForegroundColor Green
           
-          # Test 2: Prime Number Calculation (Single Thread)
-          Write-Host "Running Test 2: Prime Numbers (Single Thread)..." -ForegroundColor Yellow
-          $results += "--- Test 2: Prime Numbers (Single Thread) ---"
-          $results += "Finding primes up to 50,000..."
+          $array = $null
+          [System.GC]::Collect()
+          
+          # Test 5: Random Access Pattern
+          Write-Host "Running Test 5: Random Access Pattern..." -ForegroundColor Yellow
+          $results += "--- Test 5: Random Access Pattern ---"
+          $testSize = 50MB
+          $array = New-Object byte[] $testSize
+          $random = New-Object System.Random
+          
+          # Fill array
+          for ($i = 0; $i -lt $array.Length; $i += 4096) {
+            $array[$i] = [byte]($i % 256)
+          }
+          
+          # Random reads
+          $iterations = 100000
           $startTime = Get-Date
           
-          $primes = @()
-          for ($i = 2; $i -le 50000; $i++) {
-            $isPrime = $true
-            $sqrt = [Math]::Sqrt($i)
-            for ($j = 2; $j -le $sqrt; $j++) {
-              if ($i % $j -eq 0) {
-                $isPrime = $false
-                break
-              }
-            }
-            if ($isPrime) { $primes += $i }
+          $sum = 0
+          for ($i = 0; $i -lt $iterations; $i++) {
+            $index = $random.Next(0, $array.Length)
+            $sum += $array[$index]
           }
           
           $endTime = Get-Date
           $duration = ($endTime - $startTime).TotalSeconds
-          $results += "Primes found: $($primes.Count)"
+          $opsPerSec = [math]::Round($iterations / $duration, 0)
+          $results += "Array size: $([math]::Round($testSize / 1MB, 2)) MB"
+          $results += "Random reads: $iterations"
           $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Operations/sec: $opsPerSec"
           $results += ""
-          Write-Host "  Found $($primes.Count) primes in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          Write-Host "  Operations/sec: $opsPerSec" -ForegroundColor Green
           
-          # Test 3: Floating Point Math (Single Thread)
-          Write-Host "Running Test 3: Floating Point Math (Single Thread)..." -ForegroundColor Yellow
-          $results += "--- Test 3: Floating Point Math (Single Thread) ---"
-          $startTime = Get-Date
+          $array = $null
+          [System.GC]::Collect()
           
-          $result = 0.0
-          for ($i = 0; $i -lt 5000000; $i++) {
-            $result += [Math]::Sqrt($i) * [Math]::PI
+          # Test 6: Memory Copy Performance
+          Write-Host "Running Test 6: Memory Copy Performance..." -ForegroundColor Yellow
+          $results += "--- Test 6: Memory Copy Performance ---"
+          $testSize = 50MB
+          $source = New-Object byte[] $testSize
+          $destination = New-Object byte[] $testSize
+          
+          # Fill source
+          for ($i = 0; $i -lt $source.Length; $i += 1024) {
+            $source[$i] = [byte]($i % 256)
           }
           
-          $endTime = Get-Date
-          $duration = ($endTime - $startTime).TotalSeconds
-          $results += "Iterations: 5,000,000"
-          $results += "Time: $([math]::Round($duration, 3)) seconds"
-          $results += "Operations/sec: $([math]::Round(5000000 / $duration, 0))"
-          $results += ""
-          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
-          
-          # Test 4: SHA256 Hashing (Single Thread)
-          Write-Host "Running Test 4: SHA256 Hashing (Single Thread)..." -ForegroundColor Yellow
-          $results += "--- Test 4: SHA256 Hashing (Single Thread) ---"
           $startTime = Get-Date
+          [System.Buffer]::BlockCopy($source, 0, $destination, 0, $testSize)
+          $endTime = Get-Date
           
-          $hash = [System.Security.Cryptography.SHA256]::Create()
+          $duration = ($endTime - $startTime).TotalSeconds
+          $throughput = [math]::Round(($testSize / 1MB) / $duration, 2)
+          $results += "Size: $([math]::Round($testSize / 1MB, 2)) MB"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Throughput: $throughput MB/s"
+          $results += ""
+          Write-Host "  Throughput: $throughput MB/s" -ForegroundColor Green
+          
+          $source = $null
+          $destination = $null
+          [System.GC]::Collect()
+          
+          # Test 7: Array.Copy Performance
+          Write-Host "Running Test 7: Array.Copy Performance..." -ForegroundColor Yellow
+          $results += "--- Test 7: Array.Copy Performance ---"
+          $testSize = 50MB
+          $source = New-Object byte[] $testSize
+          $destination = New-Object byte[] $testSize
+          
+          $startTime = Get-Date
+          [Array]::Copy($source, $destination, $testSize)
+          $endTime = Get-Date
+          
+          $duration = ($endTime - $startTime).TotalSeconds
+          $throughput = [math]::Round(($testSize / 1MB) / $duration, 2)
+          $results += "Size: $([math]::Round($testSize / 1MB, 2)) MB"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Throughput: $throughput MB/s"
+          $results += ""
+          Write-Host "  Throughput: $throughput MB/s" -ForegroundColor Green
+          
+          $source = $null
+          $destination = $null
+          [System.GC]::Collect()
+          
+          # Test 8: Multiple Small Allocations
+          Write-Host "Running Test 8: Multiple Small Allocations..." -ForegroundColor Yellow
+          $results += "--- Test 8: Multiple Small Allocations ---"
+          $allocCount = 10000
+          $allocSize = 1KB
+          
+          $startTime = Get-Date
+          $arrays = @()
+          for ($i = 0; $i -lt $allocCount; $i++) {
+            $arrays += New-Object byte[] $allocSize
+          }
+          $endTime = Get-Date
+          
+          $duration = ($endTime - $startTime).TotalSeconds
+          $totalSize = ($allocCount * $allocSize) / 1MB
+          $allocsPerSec = [math]::Round($allocCount / $duration, 0)
+          $results += "Allocations: $allocCount"
+          $results += "Size per allocation: $([math]::Round($allocSize / 1KB, 2)) KB"
+          $results += "Total allocated: $([math]::Round($totalSize, 2)) MB"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Allocations/sec: $allocsPerSec"
+          $results += ""
+          Write-Host "  Allocations/sec: $allocsPerSec" -ForegroundColor Green
+          
+          $arrays = $null
+          [System.GC]::Collect()
+          
+          # Test 9: Garbage Collection Performance
+          Write-Host "Running Test 9: Garbage Collection Performance..." -ForegroundColor Yellow
+          $results += "--- Test 9: Garbage Collection Performance ---"
+          
+          # Create garbage
           for ($i = 0; $i -lt 1000; $i++) {
-            $data = [System.Text.Encoding]::UTF8.GetBytes("Test data $i" * 100)
-            $hashResult = $hash.ComputeHash($data)
+            $temp = New-Object byte[] (100KB)
           }
-          $hash.Dispose()
           
-          $endTime = Get-Date
-          $duration = ($endTime - $startTime).TotalSeconds
-          $results += "Hashes computed: 1,000"
-          $results += "Time: $([math]::Round($duration, 3)) seconds"
-          $results += "Hashes/sec: $([math]::Round(1000 / $duration, 2))"
-          $results += ""
-          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
-          
-          # Test 5: Multi-threaded Integer Math
-          Write-Host "Running Test 5: Integer Math (Multi-threaded)..." -ForegroundColor Yellow
-          $results += "--- Test 5: Integer Math (Multi-threaded) ---"
-          $results += "Threads: $($cpu.NumberOfLogicalProcessors)"
           $startTime = Get-Date
+          [System.GC]::Collect()
+          [System.GC]::WaitForPendingFinalizers()
+          [System.GC]::Collect()
+          $endTime = Get-Date
           
-          $jobs = 1..100 | ForEach-Object -Parallel {
-            $sum = 0
-            for ($i = 0; $i -lt 100000; $i++) {
-              $sum += $i
+          $duration = ($endTime - $startTime).TotalMilliseconds
+          $results += "Full GC collection time: $([math]::Round($duration, 2)) ms"
+          $results += ""
+          Write-Host "  GC time: $([math]::Round($duration, 2)) ms" -ForegroundColor Green
+          
+          # Test 10: Memory Pressure Test
+          Write-Host "Running Test 10: Memory Pressure Test..." -ForegroundColor Yellow
+          $results += "--- Test 10: Memory Pressure Test ---"
+          $results += "Allocating multiple 10MB arrays..."
+          
+          $arrays = @()
+          $maxArrays = 50
+          $arraySize = 10MB
+          
+          $startTime = Get-Date
+          for ($i = 0; $i -lt $maxArrays; $i++) {
+            $arrays += New-Object byte[] $arraySize
+            # Fill with data
+            for ($j = 0; $j -lt $arraySize; $j += 4096) {
+              $arrays[$i][$j] = [byte]($j % 256)
             }
-            $sum
-          } -ThrottleLimit $cpu.NumberOfLogicalProcessors
-          
-          $endTime = Get-Date
-          $duration = ($endTime - $startTime).TotalSeconds
-          $results += "Jobs: 100"
-          $results += "Iterations per job: 100,000"
-          $results += "Total iterations: 10,000,000"
-          $results += "Time: $([math]::Round($duration, 3)) seconds"
-          $results += "Operations/sec: $([math]::Round(10000000 / $duration, 0))"
-          $results += ""
-          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
-          
-          # Test 6: Multi-threaded SHA256 Hashing
-          Write-Host "Running Test 6: SHA256 Hashing (Multi-threaded)..." -ForegroundColor Yellow
-          $results += "--- Test 6: SHA256 Hashing (Multi-threaded) ---"
-          $results += "Threads: $($cpu.NumberOfLogicalProcessors)"
-          $startTime = Get-Date
-          
-          $jobs = 1..100 | ForEach-Object -Parallel {
-            $hash = [System.Security.Cryptography.SHA256]::Create()
-            $data = [System.Text.Encoding]::UTF8.GetBytes("Test data $_" * 100)
-            $result = $hash.ComputeHash($data)
-            $hash.Dispose()
-          } -ThrottleLimit $cpu.NumberOfLogicalProcessors
-          
-          $endTime = Get-Date
-          $duration = ($endTime - $startTime).TotalSeconds
-          $results += "Hashes computed: 100"
-          $results += "Time: $([math]::Round($duration, 3)) seconds"
-          $results += "Hashes/sec: $([math]::Round(100 / $duration, 2))"
-          $results += ""
-          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
-          
-          # Test 7: Compression Performance
-          Write-Host "Running Test 7: Compression Performance..." -ForegroundColor Yellow
-          $results += "--- Test 7: Compression Performance ---"
-          $testData = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 1000
-          $bytes = [System.Text.Encoding]::UTF8.GetBytes($testData)
-          
-          $startTime = Get-Date
-          $ms = New-Object System.IO.MemoryStream
-          $gzip = New-Object System.IO.Compression.GZipStream($ms, [System.IO.Compression.CompressionMode]::Compress)
-          $gzip.Write($bytes, 0, $bytes.Length)
-          $gzip.Close()
-          $compressed = $ms.ToArray()
-          $ms.Close()
-          $endTime = Get-Date
-          
-          $duration = ($endTime - $startTime).TotalSeconds
-          $results += "Original size: $([math]::Round($bytes.Length / 1KB, 2)) KB"
-          $results += "Compressed size: $([math]::Round($compressed.Length / 1KB, 2)) KB"
-          $results += "Compression ratio: $([math]::Round(($bytes.Length / $compressed.Length), 2)):1"
-          $results += "Time: $([math]::Round($duration, 3)) seconds"
-          $results += "Throughput: $([math]::Round(($bytes.Length / 1MB) / $duration, 2)) MB/s"
-          $results += ""
-          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
-          
-          # Test 8: String Operations
-          Write-Host "Running Test 8: String Operations..." -ForegroundColor Yellow
-          $results += "--- Test 8: String Operations ---"
-          $startTime = Get-Date
-          
-          $sb = New-Object System.Text.StringBuilder
-          for ($i = 0; $i -lt 50000; $i++) {
-            [void]$sb.Append("test$i")
           }
-          $finalString = $sb.ToString()
-          
           $endTime = Get-Date
+          
           $duration = ($endTime - $startTime).TotalSeconds
-          $results += "String appends: 50,000"
-          $results += "Final length: $($finalString.Length) characters"
+          $totalAllocated = ($maxArrays * $arraySize) / 1MB
+          $throughput = [math]::Round($totalAllocated / $duration, 2)
+          
+          $results += "Arrays created: $maxArrays"
+          $results += "Size per array: $([math]::Round($arraySize / 1MB, 2)) MB"
+          $results += "Total allocated: $([math]::Round($totalAllocated, 2)) MB"
           $results += "Time: $([math]::Round($duration, 3)) seconds"
-          $results += "Operations/sec: $([math]::Round(50000 / $duration, 0))"
+          $results += "Throughput: $throughput MB/s"
           $results += ""
-          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          Write-Host "  Allocated $([math]::Round($totalAllocated, 2)) MB in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
           
-          # Summary
-          $results += "========================================="
-          $results += "BENCHMARK COMPLETED"
-          $results += "========================================="
+          # Check memory after allocation
+          $os = Get-CimInstance Win32_OperatingSystem
+          $freeMemoryAfter = [math]::Round($os.FreePhysicalMemory / 1MB / 1024, 2)
+          $results += "Free memory after test: $freeMemoryAfter GB"
+          $results += ""
           
-          # Save results
-          $outputFile = "cpu_benchmark_results.txt"
-          $results | Out-File -FilePath $outputFile -Encoding UTF8
+          $arrays = $null
+          [System.GC]::Collect()
           
-          Write-Host ""
-          Write-Host "========================================" -ForegroundColor Green
-          Write-Host "BENCHMARK COMPLETED SUCCESSFULLY" -ForegroundColor Green
-          Write-Host "========================================" -ForegroundColor Green
-          Write-Host "Results saved to: $outputFile" -ForegroundColor Cyan
-          
-          # Display results
-          $results | ForEach-Object { Write-Host $_ }
-      
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: cpu-benchmark-results
-          path: cpu_benchmark_results.txt
-          retention-days: 30
+          # Final memory state
+          Write-Host "Checking final memory state..." -ForegroundColor Yellow
