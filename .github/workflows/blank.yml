@@ -1,0 +1,255 @@
+name: CPU Benchmark - Windows Server 2025
+
+on:
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  benchmark-cpu-2025:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: CPU Benchmark
+        shell: pwsh
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "CPU BENCHMARK - Windows Server 2025" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host ""
+          
+          $results = @()
+          $results += "========================================="
+          $results += "CPU BENCHMARK - Windows Server 2025"
+          $results += "========================================="
+          $results += "Benchmark Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')"
+          $results += ""
+          
+          # System Information
+          Write-Host "Gathering system information..." -ForegroundColor Yellow
+          $os = Get-CimInstance Win32_OperatingSystem
+          $results += "--- System Information ---"
+          $results += "OS: $($os.Caption)"
+          $results += "Version: $($os.Version)"
+          $results += "Build: $($os.BuildNumber)"
+          $results += "Architecture: $($os.OSArchitecture)"
+          $results += ""
+          
+          # CPU Information
+          Write-Host "Gathering CPU information..." -ForegroundColor Yellow
+          $cpu = Get-CimInstance Win32_Processor
+          $results += "--- CPU Information ---"
+          $results += "Name: $($cpu.Name)"
+          $results += "Manufacturer: $($cpu.Manufacturer)"
+          $results += "Cores: $($cpu.NumberOfCores)"
+          $results += "Logical Processors: $($cpu.NumberOfLogicalProcessors)"
+          $results += "Max Clock Speed: $($cpu.MaxClockSpeed) MHz"
+          $results += "Current Clock Speed: $($cpu.CurrentClockSpeed) MHz"
+          $results += "L2 Cache: $($cpu.L2CacheSize) KB"
+          $results += "L3 Cache: $($cpu.L3CacheSize) KB"
+          $results += ""
+          
+          # Test 1: Integer Math (Single Thread)
+          Write-Host "Running Test 1: Integer Math (Single Thread)..." -ForegroundColor Yellow
+          $results += "--- Test 1: Integer Math (Single Thread) ---"
+          $startTime = Get-Date
+          
+          $sum = 0
+          for ($i = 0; $i -lt 10000000; $i++) {
+            $sum += $i
+          }
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalSeconds
+          $results += "Iterations: 10,000,000"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Operations/sec: $([math]::Round(10000000 / $duration, 0))"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          
+          # Test 2: Prime Number Calculation (Single Thread)
+          Write-Host "Running Test 2: Prime Numbers (Single Thread)..." -ForegroundColor Yellow
+          $results += "--- Test 2: Prime Numbers (Single Thread) ---"
+          $results += "Finding primes up to 50,000..."
+          $startTime = Get-Date
+          
+          $primes = @()
+          for ($i = 2; $i -le 50000; $i++) {
+            $isPrime = $true
+            $sqrt = [Math]::Sqrt($i)
+            for ($j = 2; $j -le $sqrt; $j++) {
+              if ($i % $j -eq 0) {
+                $isPrime = $false
+                break
+              }
+            }
+            if ($isPrime) { $primes += $i }
+          }
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalSeconds
+          $results += "Primes found: $($primes.Count)"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += ""
+          Write-Host "  Found $($primes.Count) primes in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          
+          # Test 3: Floating Point Math (Single Thread)
+          Write-Host "Running Test 3: Floating Point Math (Single Thread)..." -ForegroundColor Yellow
+          $results += "--- Test 3: Floating Point Math (Single Thread) ---"
+          $startTime = Get-Date
+          
+          $result = 0.0
+          for ($i = 0; $i -lt 5000000; $i++) {
+            $result += [Math]::Sqrt($i) * [Math]::PI
+          }
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalSeconds
+          $results += "Iterations: 5,000,000"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Operations/sec: $([math]::Round(5000000 / $duration, 0))"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          
+          # Test 4: SHA256 Hashing (Single Thread)
+          Write-Host "Running Test 4: SHA256 Hashing (Single Thread)..." -ForegroundColor Yellow
+          $results += "--- Test 4: SHA256 Hashing (Single Thread) ---"
+          $startTime = Get-Date
+          
+          $hash = [System.Security.Cryptography.SHA256]::Create()
+          for ($i = 0; $i -lt 1000; $i++) {
+            $data = [System.Text.Encoding]::UTF8.GetBytes("Test data $i" * 100)
+            $hashResult = $hash.ComputeHash($data)
+          }
+          $hash.Dispose()
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalSeconds
+          $results += "Hashes computed: 1,000"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Hashes/sec: $([math]::Round(1000 / $duration, 2))"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          
+          # Test 5: Multi-threaded Integer Math
+          Write-Host "Running Test 5: Integer Math (Multi-threaded)..." -ForegroundColor Yellow
+          $results += "--- Test 5: Integer Math (Multi-threaded) ---"
+          $results += "Threads: $($cpu.NumberOfLogicalProcessors)"
+          $startTime = Get-Date
+          
+          $jobs = 1..100 | ForEach-Object -Parallel {
+            $sum = 0
+            for ($i = 0; $i -lt 100000; $i++) {
+              $sum += $i
+            }
+            $sum
+          } -ThrottleLimit $cpu.NumberOfLogicalProcessors
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalSeconds
+          $results += "Jobs: 100"
+          $results += "Iterations per job: 100,000"
+          $results += "Total iterations: 10,000,000"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Operations/sec: $([math]::Round(10000000 / $duration, 0))"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          
+          # Test 6: Multi-threaded SHA256 Hashing
+          Write-Host "Running Test 6: SHA256 Hashing (Multi-threaded)..." -ForegroundColor Yellow
+          $results += "--- Test 6: SHA256 Hashing (Multi-threaded) ---"
+          $results += "Threads: $($cpu.NumberOfLogicalProcessors)"
+          $startTime = Get-Date
+          
+          $jobs = 1..100 | ForEach-Object -Parallel {
+            $hash = [System.Security.Cryptography.SHA256]::Create()
+            $data = [System.Text.Encoding]::UTF8.GetBytes("Test data $_" * 100)
+            $result = $hash.ComputeHash($data)
+            $hash.Dispose()
+          } -ThrottleLimit $cpu.NumberOfLogicalProcessors
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalSeconds
+          $results += "Hashes computed: 100"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Hashes/sec: $([math]::Round(100 / $duration, 2))"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          
+          # Test 7: Compression Performance
+          Write-Host "Running Test 7: Compression Performance..." -ForegroundColor Yellow
+          $results += "--- Test 7: Compression Performance ---"
+          $testData = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 1000
+          $bytes = [System.Text.Encoding]::UTF8.GetBytes($testData)
+          
+          $startTime = Get-Date
+          $ms = New-Object System.IO.MemoryStream
+          $gzip = New-Object System.IO.Compression.GZipStream($ms, [System.IO.Compression.CompressionMode]::Compress)
+          $gzip.Write($bytes, 0, $bytes.Length)
+          $gzip.Close()
+          $compressed = $ms.ToArray()
+          $ms.Close()
+          $endTime = Get-Date
+          
+          $duration = ($endTime - $startTime).TotalSeconds
+          $results += "Original size: $([math]::Round($bytes.Length / 1KB, 2)) KB"
+          $results += "Compressed size: $([math]::Round($compressed.Length / 1KB, 2)) KB"
+          $results += "Compression ratio: $([math]::Round(($bytes.Length / $compressed.Length), 2)):1"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Throughput: $([math]::Round(($bytes.Length / 1MB) / $duration, 2)) MB/s"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          
+          # Test 8: String Operations
+          Write-Host "Running Test 8: String Operations..." -ForegroundColor Yellow
+          $results += "--- Test 8: String Operations ---"
+          $startTime = Get-Date
+          
+          $sb = New-Object System.Text.StringBuilder
+          for ($i = 0; $i -lt 50000; $i++) {
+            [void]$sb.Append("test$i")
+          }
+          $finalString = $sb.ToString()
+          
+          $endTime = Get-Date
+          $duration = ($endTime - $startTime).TotalSeconds
+          $results += "String appends: 50,000"
+          $results += "Final length: $($finalString.Length) characters"
+          $results += "Time: $([math]::Round($duration, 3)) seconds"
+          $results += "Operations/sec: $([math]::Round(50000 / $duration, 0))"
+          $results += ""
+          Write-Host "  Completed in $([math]::Round($duration, 3)) seconds" -ForegroundColor Green
+          
+          # Summary
+          $results += "========================================="
+          $results += "BENCHMARK COMPLETED"
+          $results += "========================================="
+          
+          # Save results
+          $outputFile = "cpu_benchmark_results.txt"
+          $results | Out-File -FilePath $outputFile -Encoding UTF8
+          
+          Write-Host ""
+          Write-Host "========================================" -ForegroundColor Green
+          Write-Host "BENCHMARK COMPLETED SUCCESSFULLY" -ForegroundColor Green
+          Write-Host "========================================" -ForegroundColor Green
+          Write-Host "Results saved to: $outputFile" -ForegroundColor Cyan
+          
+          # Display results
+          $results | ForEach-Object { Write-Host $_ }
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cpu-benchmark-results
+          path: cpu_benchmark_results.txt
+          retention-days: 30
