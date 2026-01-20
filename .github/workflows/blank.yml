@@ -21,19 +21,4 @@ jobs:
       - name: Memory Benchmark
         shell: pwsh
         run: |
-          # Download DiskSpd
-          Invoke-WebRequest -Uri "https://github.com/microsoft/diskspd/releases/download/v2.1/DiskSpd.zip" -OutFile "diskspd.zip"
-          Expand-Archive diskspd.zip -DestinationPath diskspd
-          cd diskspd\amd64
-          Write-Host "=== Sequential Read (128K blocks) ===" -ForegroundColor Cyan
-          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b128K -si -w0 testfile.dat
-          Write-Host "`n=== Sequential Write (128K blocks) ===" -ForegroundColor Cyan
-          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b128K -si -w100 testfile.dat
-          Write-Host "`n=== Random Read (4K blocks - IOPS) ===" -ForegroundColor Cyan
-          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b4K -r -w0 testfile.dat
-          Write-Host "`n=== Random Write (4K blocks - IOPS) ===" -ForegroundColor Cyan
-          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b4K -r -w100 testfile.dat
-          Write-Host "`n=== Mixed 70/30 Read/Write (4K blocks) ===" -ForegroundColor Cyan
-          .\diskspd.exe -c1G -d30 -W5 -t1 -o32 -b4K -r -w30 testfile.dat
-          # Cleanup
-          Remove-Item testfile.dat -ErrorAction SilentlyContinue
+          Get-PhysicalDisk | Select-Object DeviceID, FriendlyName, MediaType, BusType, Size | Format-Table -AutoSize
