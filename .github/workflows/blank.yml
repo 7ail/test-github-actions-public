@@ -236,36 +236,9 @@ jobs:
           $destination = $null
           [System.GC]::Collect()
           
-          # Test 8: Multiple Small Allocations
-          Write-Host "Running Test 8: Multiple Small Allocations..." -ForegroundColor Yellow
-          $results += "--- Test 8: Multiple Small Allocations ---"
-          $allocCount = 10000
-          $allocSize = 1KB
-          
-          $startTime = Get-Date
-          $arrays = @()
-          for ($i = 0; $i -lt $allocCount; $i++) {
-            $arrays += New-Object byte[] $allocSize
-          }
-          $endTime = Get-Date
-          
-          $duration = ($endTime - $startTime).TotalSeconds
-          $totalSize = ($allocCount * $allocSize) / 1MB
-          $allocsPerSec = [math]::Round($allocCount / $duration, 0)
-          $results += "Allocations: $allocCount"
-          $results += "Size per allocation: $([math]::Round($allocSize / 1KB, 2)) KB"
-          $results += "Total allocated: $([math]::Round($totalSize, 2)) MB"
-          $results += "Time: $([math]::Round($duration, 3)) seconds"
-          $results += "Allocations/sec: $allocsPerSec"
-          $results += ""
-          Write-Host "  Allocations/sec: $allocsPerSec" -ForegroundColor Green
-          
-          $arrays = $null
-          [System.GC]::Collect()
-          
-          # Test 9: Garbage Collection Performance
-          Write-Host "Running Test 9: Garbage Collection Performance..." -ForegroundColor Yellow
-          $results += "--- Test 9: Garbage Collection Performance ---"
+          # Test 8: Garbage Collection Performance
+          Write-Host "Running Test 8: Garbage Collection Performance..." -ForegroundColor Yellow
+          $results += "--- Test 8: Garbage Collection Performance ---"
           
           # Create garbage
           for ($i = 0; $i -lt 1000; $i++) {
@@ -283,9 +256,9 @@ jobs:
           $results += ""
           Write-Host "  GC time: $([math]::Round($duration, 2)) ms" -ForegroundColor Green
           
-          # Test 10: Memory Pressure Test
-          Write-Host "Running Test 10: Memory Pressure Test..." -ForegroundColor Yellow
-          $results += "--- Test 10: Memory Pressure Test ---"
+          # Test 9: Memory Pressure Test
+          Write-Host "Running Test 9: Memory Pressure Test..." -ForegroundColor Yellow
+          $results += "--- Test 9: Memory Pressure Test ---"
           $results += "Allocating multiple 10MB arrays..."
           
           $arrays = @()
