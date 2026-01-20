@@ -21,4 +21,11 @@ jobs:
       - name: Memory Benchmark
         shell: pwsh
         run: |
-          Get-PhysicalDisk | Select-Object DeviceID, FriendlyName, MediaType, BusType, Size | Format-Table -AutoSize
+          Get-PhysicalDisk | ForEach-Object {
+            Write-Host "Disk $($_.DeviceID): $($_.FriendlyName)" -ForegroundColor Cyan
+            Write-Host "  Media Type: $($_.MediaType)" -ForegroundColor Yellow
+            Write-Host "  Bus Type: $($_.BusType)" -ForegroundColor Yellow
+            Write-Host "  Size: $([math]::Round($_.Size / 1GB, 2)) GB" -ForegroundColor Yellow
+            Write-Host "  RPM: $($_.SpindleSpeed)" -ForegroundColor Yellow
+            Write-Host ""
+          }
